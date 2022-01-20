@@ -1,0 +1,3 @@
+db_path: ./db
+pcap_file_size: 20000000
+retention_time: 3m  

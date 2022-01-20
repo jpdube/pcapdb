@@ -1,0 +1,8 @@
+Cargo.lock
+target/
+*.pcap
+/db
+/pcap
+*.db
+*.pcap
+/config

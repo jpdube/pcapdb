@@ -5,5 +5,5 @@ target/
 /pcap
 *.db
 *.pcap
+*.paw
 /config
-misc/*

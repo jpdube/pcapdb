@@ -1,6 +1,5 @@
 use std::env;
 
-// mod db;
 mod config;
 mod db_config;
 mod dbmongo;
@@ -13,12 +12,12 @@ use pql;
 #[warn(dead_code)]
 fn main() {
     println!("Packet capture");
+    pql::run();
     let config: Config = config::read(&"./config/config.yaml");
     println!("Db path: {}", config.db_path);
     // let database: MDatabase = MDatabase::new();
     // database.init();
 
-    // pql::main();
 
     let args: Vec<String> = env::args().collect();
     if args.len() == 2 {

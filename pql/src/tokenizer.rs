@@ -106,10 +106,10 @@ pub fn tokenize(lines: &str) -> Vec<Token> {
             }
 
             index += 1;
-        } else if s[index].is_numeric() || s[index] == '.' {
+        } else if s[index].is_numeric() || s[index] == '.' || s[index] == '-' || s[index] == ':' {
             let start = index;
 
-            while index < s.len() && (s[index].is_numeric() || s[index] == '.') {
+            while index < s.len() && (s[index].is_numeric() || s[index] == '.' || s[index] == '-' || s[index] == ':') {
                 index += 1;
             }
 
@@ -125,6 +125,22 @@ pub fn tokenize(lines: &str) -> Vec<Token> {
             } else if number.contains(".") {
                 let token = Token {
                     token: String::from("FLOAT"),
+                    value: number,
+                    column: start + 1,
+                    line
+                };
+                token_list.push(token);
+            } else if number.matches("-").count() == 2 {
+                let token = Token {
+                    token: String::from("DATE"),
+                    value: number,
+                    column: start + 1,
+                    line
+                };
+                token_list.push(token);
+            } else if number.matches(":").count() == 2 {
+                let token = Token {
+                    token: String::from("TIME"),
                     value: number,
                     column: start + 1,
                     line
@@ -191,6 +207,23 @@ mod tests {
     }
 
     #[test]
+    fn date_token() {
+        let line: &str = "12-01-2022";
+        let token_list: Vec<Token> = tokenize(line);
+
+        assert!(token_list[0].token == "DATE");
+    }
+
+    #[test]
+    fn time_token() {
+        let line: &str = "14:33:56";
+        let token_list: Vec<Token> = tokenize(line);
+
+        assert!(token_list[0].token == "TIME");
+    }
+
+
+    #[test]
     fn ipv4_cidr_mask() {
         let line: &str = "192.168.0.0/24";
         let token_list: Vec<Token> = tokenize(line);
@@ -211,7 +244,7 @@ mod tests {
         assert!(token_list[1].token == "MASK");
         assert!(token_list[2].token == "IPV4");
     }
-// select ip_dst, ip_src from sniffer_01 where dport = 443
+
     #[test]
     fn column_no() {
         let line: &str = "select ip_dst, ip_src from sniffer_01 where dport = 443";

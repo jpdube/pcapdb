@@ -1,9 +1,11 @@
 mod tokenizer;
+mod parser;
 use tokenizer::{tokenize, Token};
 
 pub fn run() {
+    let line: &str = "select ip_dst, ip_src\nfrom sniffer_01\nwhere dport = 443\n";
 
-    let line: &str = "select ip_src, ip_dst from sniffer_01 where ip_src = 192.168.242.0/24 and ip_dst = 192.168.1.22 order_asc ip_src;select a from b;";
+    // let line: &str = "select ip_src, ip_dst\nfrom sniffer_01\nwhere ts = 12-02-2222 14:20:05 ip_src = 192.168.242.0/24 and ip_dst = 192.168.1.22\norder_asc ip_src and timestamp >= now - 1d;";
     let token_list: Vec<Token> = tokenize(line);
 
     println!("{}", line);

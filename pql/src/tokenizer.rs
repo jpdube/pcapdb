@@ -60,6 +60,7 @@ pub fn tokenize(lines: &str) -> Vec<Token> {
     let mut token_two = HashMap::new();
 
     let mut line: usize = 1;
+    let mut line_offset: usize = 0;
 
     init_keywords(&mut keywords);
     init_token_one(&mut token_one);
@@ -71,11 +72,12 @@ pub fn tokenize(lines: &str) -> Vec<Token> {
                 let token = Token {
                     token: String::from("EOL"),
                     value: String::from("eol"),
-                    column: index + 1,
+                    column: (index + 1) - line_offset,
                     line: line,
                 };
                 token_list.push(token);
                 line += 1;
+                line_offset = index + 1;
             }
             index += 1;
         } else if (index + 2) <= s.len() && token_two.contains_key(&String::from_iter(s[index..index + 2].to_vec()) as &str) {
@@ -84,7 +86,7 @@ pub fn tokenize(lines: &str) -> Vec<Token> {
             let token = Token {
                 token: String::from(tok.to_string()),
                 value: String::from(stoken),
-                column: index + 1,
+                column: (index + 1) - line_offset,
                 line,
             };
             token_list.push(token);
@@ -96,7 +98,7 @@ pub fn tokenize(lines: &str) -> Vec<Token> {
             let token = Token {
                 token: String::from(tok.to_string()),
                 value: String::from(s[index]),
-                column: index + 1,
+                column: (index + 1) - line_offset,
                 line,
             };
             token_list.push(token);
@@ -118,7 +120,7 @@ pub fn tokenize(lines: &str) -> Vec<Token> {
                 let token = Token {
                     token: String::from("IPV4"),
                     value: number,
-                    column: start + 1,
+                    column: (start + 1) - line_offset,
                     line
                 };
                 token_list.push(token);
@@ -126,7 +128,7 @@ pub fn tokenize(lines: &str) -> Vec<Token> {
                 let token = Token {
                     token: String::from("FLOAT"),
                     value: number,
-                    column: start + 1,
+                    column: (start + 1) - line_offset,
                     line
                 };
                 token_list.push(token);
@@ -134,7 +136,7 @@ pub fn tokenize(lines: &str) -> Vec<Token> {
                 let token = Token {
                     token: String::from("DATE"),
                     value: number,
-                    column: start + 1,
+                    column: (start + 1) - line_offset,
                     line
                 };
                 token_list.push(token);
@@ -142,7 +144,7 @@ pub fn tokenize(lines: &str) -> Vec<Token> {
                 let token = Token {
                     token: String::from("TIME"),
                     value: number,
-                    column: start + 1,
+                    column: (start + 1) - line_offset,
                     line
                 };
                 token_list.push(token);
@@ -150,7 +152,7 @@ pub fn tokenize(lines: &str) -> Vec<Token> {
                 let token = Token {
                     token: String::from("INTEGER"),
                     value: number,
-                    column: start + 1,
+                    column: (start + 1) - line_offset,
                     line
                 };
                 token_list.push(token);
@@ -166,7 +168,7 @@ pub fn tokenize(lines: &str) -> Vec<Token> {
                 let token = Token {
                     token: String::from(tok.to_string()),
                     value: String::from(keyword),
-                    column: start + 1,
+                    column: (start + 1) - line_offset,
                     line
                 };
                 token_list.push(token);
@@ -174,7 +176,7 @@ pub fn tokenize(lines: &str) -> Vec<Token> {
                 let token = Token {
                     token: String::from("NAME"),
                     value: String::from(keyword),
-                    column: start + 1,
+                    column: (start + 1) - line_offset,
                     line
                 };
                 token_list.push(token);
@@ -187,8 +189,9 @@ pub fn tokenize(lines: &str) -> Vec<Token> {
     let token = Token {
         token: String::from("EOF"),
         value: String::from("eof"),
-        column: s.len() + 1,
-        line: line - 1
+        column: (index + 1) - line_offset,
+        // column: s.len() + 1,
+        line: line
     };
     token_list.push(token);
 
@@ -258,6 +261,18 @@ mod tests {
     }
 
     #[test]
+    fn multiline() {
+        let line: &str = "select ip_dst, ip_src\nfrom sniffer_01\nwhere dport = 443";
+        let tl: Vec<Token> = tokenize(line);
+        assert!(tl.len() == 12);
+
+        assert!(tl[0].token == "SELECT" && tl[0].column == 1 && tl[0].line == 1);
+        assert!(tl[1].token == "NAME" && tl[1].column == 8 && tl[1].line == 1);
+        assert!(tl[4].token == "FROM" && tl[4].column == 1 && tl[4].line == 2);
+        assert!(tl[7].token == "WHERE" && tl[7].column == 1 && tl[7].line == 3);
+    }
+
+    #[test]
     fn two_chars_tokens() {
         let line: &str = ">= <=";
         let tl: Vec<Token> = tokenize(line);
@@ -282,5 +297,6 @@ mod tests {
         assert!(tl[6].token == "MASK" && tl[6].column == 13 && tl[6].line == 1);
         assert!(tl[7].token == "EOL" && tl[7].column == 15 && tl[7].line == 1);
     }
+
 }
 

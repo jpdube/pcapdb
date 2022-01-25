@@ -11,22 +11,18 @@ use pql;
 
 #[warn(dead_code)]
 fn main() {
-    println!("Packet capture");
-    pql::run();
-    let config: Config = config::read(&"./config/config.yaml");
-    println!("Db path: {}", config.db_path);
-    // let database: MDatabase = MDatabase::new();
-    // database.init();
-
-
     let args: Vec<String> = env::args().collect();
-    if args.len() == 2 {
-        println!("Target device is: {}", args[1]);
-        sniffer::capture(&args[1]).unwrap();
-    }
+    println!("Packet capture");
     println!("{:?}", args);
-    // match database() {
-    // Err(e) => println!("Error, you fucked up JP!!! {:?}", e),
-    // Ok(()) => {}
-    // }
+    pql::run();
+    let config: Config = config::read(&args[1]);
+    println!("Db path: {}", config.db_path);
+    let database: MDatabase = MDatabase::new();
+    database.init();
+
+
+    if args.len() == 3 {
+        println!("Target device is: {}", args[2]);
+        sniffer::capture(&args[2]).unwrap();
+    }
 }

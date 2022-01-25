@@ -28,6 +28,8 @@ fn init_token_one(keywords: &mut HashMap<&str, &str>) {
     keywords.insert("*", "MULTIPLY");
     keywords.insert("<", "LT");
     keywords.insert(">", "GT");
+    keywords.insert("(", "LPAREN");
+    keywords.insert(")", "RPAREN");
 }
 
 fn init_token_two(keywords: &mut HashMap<&str, &str>) {
@@ -296,6 +298,16 @@ mod tests {
         assert!(tl[5].token == "MULTIPLY" && tl[5].column == 11 && tl[5].line == 1);
         assert!(tl[6].token == "MASK" && tl[6].column == 13 && tl[6].line == 1);
         assert!(tl[7].token == "EOL" && tl[7].column == 15 && tl[7].line == 1);
+    }
+
+    #[test]
+    fn grouping() {
+        let line: &str = "()";
+        let tl: Vec<Token> = tokenize(line);
+        assert!(tl.len() == 3);
+
+        assert!(tl[0].token == "LPAREN" && tl[0].column == 1 && tl[0].line == 1);
+        assert!(tl[1].token == "RPAREN" && tl[1].column == 2 && tl[1].line == 1);
     }
 
 }

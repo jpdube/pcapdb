@@ -2,11 +2,13 @@ use std::env;
 
 mod config;
 mod db_config;
-mod dbmongo;
+// mod dbmongo;
 mod packetref;
 mod sniffer;
+mod db;
 use config::Config;
-use dbmongo::MDatabase;
+// use dbmongo::MDatabase;
+use db::Database;
 use pql;
 
 #[warn(dead_code)]
@@ -17,8 +19,11 @@ fn main() {
     pql::run();
     let config: Config = config::read(&args[1]);
     println!("Db path: {}", config.db_path);
-    let database: MDatabase = MDatabase::new();
-    database.init();
+    // let database: Database = Database::new(&format!("{config.db_path}/sql-index.db"));
+    // database.init();
+
+    // let database: MDatabase = MDatabase::new();
+    // database.init();
 
 
     if args.len() == 3 {

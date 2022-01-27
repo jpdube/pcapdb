@@ -1,4 +1,4 @@
-use rusqlite::{Connection, Result};
+use rusqlite::{Connection, Result, Transaction};
 
 pub struct DbInfo {
     pub timestamp: u32,
@@ -17,34 +17,40 @@ pub struct DbInfo {
 pub struct Database {
     conn: Connection,
     filename: String,
-        
 }
 
 impl Database {
 
-    pub fn save_db(&self, pkt: &DbInfo) {
+    pub fn save_many(&mut self, pkt_list: &Vec<DbInfo>) {
         let sql = "INSERT INTO packet (mac_src, mac_dst, ip_src, ip_dst, sport, dport, file_ptr, file_id, timestamp) values (?,?,?,?,?,?,?,?,?)";
-        self.conn.execute(
-            sql,
-            [
-                pkt.src_mac,
-                pkt.dst_mac,
-                pkt.src_ip.into(),
-                pkt.dst_ip.into(),
-                pkt.sport.into(),
-                pkt.dport.into(),
-                pkt.pkt_ptr,
-                pkt.file_no.into(),
-                pkt.timestamp.into(),
-            ],
-        )
-        .unwrap();
+
+        let tx = self.conn.transaction().unwrap();
+
+        for pkt in pkt_list.iter() {
+            tx.execute(
+                sql,
+                [
+                    pkt.src_mac,
+                    pkt.dst_mac,
+                    pkt.src_ip.into(),
+                    pkt.dst_ip.into(),
+                    pkt.sport.into(),
+                    pkt.dport.into(),
+                    pkt.pkt_ptr,
+                    pkt.file_no.into(),
+                    pkt.timestamp.into(),
+                ],
+            )
+            .unwrap();
+        }
+
+        tx.commit().unwrap();
     }
 
     pub fn new(db_filename: &String) -> Self {
         Database {
             filename: db_filename.to_string(),
-            conn: Connection::open("./db/packets.db").unwrap(),
+            conn: Connection::open(db_filename).unwrap(),
         }
 
     }

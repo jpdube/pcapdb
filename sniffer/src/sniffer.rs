@@ -1,11 +1,12 @@
-use crate::dbmongo::{DbInfo, MDatabase};
+// use crate::dbmongo::{DbInfo, MDatabase};
 use pcap::{Capture, Device};
 use std::fs::File;
+use std::io::{BufWriter, Write};
 use std::io::prelude::*;
 use std::sync::mpsc;
 use std::thread;
-use std::time::SystemTime;
-// use crate::db::{Database, DbInfo};
+use std::time::{SystemTime, UNIX_EPOCH};
+use crate::db::{Database, DbInfo};
 use crate::db_config::DBConfig;
 use crate::packetref::PacketRef;
 
@@ -28,21 +29,28 @@ pub fn capture(device_name: &String) -> Result<(), pcap::Error> {
     let mut dbinfo_list: Vec<DbInfo> = Vec::new();
 
     thread::spawn(move || {
-        let database: MDatabase = MDatabase::new();
+        let mut display_counter: u16 = 0;
+        let mut database: Database = Database::new(&String::from("./db/index.db"));
         database.init();
 
         for p in rx_db {
+            display_counter += 1;
             let pkt: DbInfo = p;
             dbinfo_list.push(pkt);
 
-            if dbinfo_list.len() == 48 {
+            if dbinfo_list.len() == 8 {
                 let t_init = SystemTime::now();
                 database.save_many(&dbinfo_list);
                 dbinfo_list.clear();
-                println!(
-                    "DB Execution time: {}us",
-                    t_init.elapsed().unwrap().as_micros()
-                );
+
+
+                if display_counter > 100  {
+                    display_counter = 0;
+                    println!(
+                        "DB Execution time: {}us",
+                        t_init.elapsed().unwrap().as_micros()
+                    );
+                }
             }
         }
     });
@@ -50,15 +58,17 @@ pub fn capture(device_name: &String) -> Result<(), pcap::Error> {
     thread::spawn(move || {
         let mut file_ptr: u64 = 0;
         let mut file_no: u32;
+        let mut header_only = true;
         let mut dbconfig: DBConfig = DBConfig::new();
         file_no = dbconfig.read();
 
-        let mut bin_file = File::create(format!("{}{}.pcap", PCAP_PATH, file_no)).unwrap();
+        let mut bin_file = BufWriter::new(File::create(format!("{}{}.pcap", PCAP_PATH, file_no)).unwrap());
         for p in rx_packet {
+            // let t_init = SystemTime::now();
             if file_ptr >= MAX_FILE_SIZE {
                 file_no = dbconfig.read();
                 file_ptr = 0;
-                bin_file = File::create(format!("{}{}.pcap", PCAP_PATH, file_no)).unwrap();
+                bin_file = BufWriter::new(File::create(format!("{}{}.pcap", PCAP_PATH, file_no)).unwrap());
             }
 
             if file_ptr == 0 {
@@ -81,18 +91,17 @@ pub fn capture(device_name: &String) -> Result<(), pcap::Error> {
             };
             tx_db.send(db_pkt).unwrap();
 
-            //--- TCP
-            if pkt.ip_proto() == 0x06 {
-                bin_file.write_all(&pkt.pkt_header(true)).unwrap();
-                bin_file.write_all(&pkt.get_header()).unwrap();
-            //--- UDP
-            } else if pkt.ip_proto() == 0x11 {
-                bin_file.write_all(&pkt.pkt_header(true)).unwrap();
-                bin_file.write_all(&pkt.get_header()).unwrap();
+            if pkt.ip_proto() == 0x06 || pkt.ip_proto() == 0x11 {
+                bin_file.write_all(&pkt.pkt_header(header_only)).unwrap();
+                bin_file.write_all(&pkt.get_packet(header_only)).unwrap();
             } else {
-                bin_file.write_all(&pkt.pkt_header(false)).unwrap();
-                bin_file.write_all(&pkt.raw_packet).unwrap();
+                bin_file.write_all(&pkt.pkt_header(header_only)).unwrap();
+                bin_file.write_all(&pkt.get_packet(header_only)).unwrap();
             }
+            // println!(
+            //     "PACKET: Execution time: {}us",
+            //     t_init.elapsed().unwrap().as_micros()
+            //     );
         }
     });
 

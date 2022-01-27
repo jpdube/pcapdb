@@ -216,4 +216,13 @@ impl PacketRef {
 
         self.raw_packet[0..hdr_len as usize].to_vec()
     }
+
+    pub fn get_packet(&mut self, header: bool) -> Vec<u8> {
+        if header {
+            self.get_header().to_vec()
+        }
+        else {
+            self.raw_packet.to_vec()
+        }
+    }
 }

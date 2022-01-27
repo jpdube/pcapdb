@@ -5,7 +5,7 @@ use std::io::{BufWriter, Write};
 use std::io::prelude::*;
 use std::sync::mpsc;
 use std::thread;
-use std::time::SystemTime;
+use std::time::{SystemTime, UNIX_EPOCH};
 use crate::db::{Database, DbInfo};
 use crate::db_config::DBConfig;
 use crate::packetref::PacketRef;
@@ -29,21 +29,28 @@ pub fn capture(device_name: &String) -> Result<(), pcap::Error> {
     let mut dbinfo_list: Vec<DbInfo> = Vec::new();
 
     thread::spawn(move || {
+        let mut display_counter: u16 = 0;
         let mut database: Database = Database::new(&String::from("./db/index.db"));
         database.init();
 
         for p in rx_db {
+            display_counter += 1;
             let pkt: DbInfo = p;
             dbinfo_list.push(pkt);
 
-            if dbinfo_list.len() == 32 {
+            if dbinfo_list.len() == 8 {
                 let t_init = SystemTime::now();
                 database.save_many(&dbinfo_list);
                 dbinfo_list.clear();
-                println!(
-                    "DB Execution time: {}us",
-                    t_init.elapsed().unwrap().as_micros()
-                );
+
+
+                if display_counter > 100  {
+                    display_counter = 0;
+                    println!(
+                        "DB Execution time: {}us",
+                        t_init.elapsed().unwrap().as_micros()
+                    );
+                }
             }
         }
     });
@@ -84,7 +91,6 @@ pub fn capture(device_name: &String) -> Result<(), pcap::Error> {
             };
             tx_db.send(db_pkt).unwrap();
 
-            //--- TCP
             if pkt.ip_proto() == 0x06 || pkt.ip_proto() == 0x11 {
                 bin_file.write_all(&pkt.pkt_header(header_only)).unwrap();
                 bin_file.write_all(&pkt.get_packet(header_only)).unwrap();

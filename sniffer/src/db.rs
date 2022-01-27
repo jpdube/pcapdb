@@ -1,4 +1,4 @@
-use rusqlite::{Connection, Result, Transaction};
+use rusqlite::{Connection, Result, Transaction, named_params};
 
 pub struct DbInfo {
     pub timestamp: u32,
@@ -22,29 +22,25 @@ pub struct Database {
 impl Database {
 
     pub fn save_many(&mut self, pkt_list: &Vec<DbInfo>) {
-        let sql = "INSERT INTO packet (mac_src, mac_dst, ip_src, ip_dst, sport, dport, file_ptr, file_id, timestamp) values (?,?,?,?,?,?,?,?,?)";
-
-        let tx = self.conn.transaction().unwrap();
-
+        let sql = "INSERT INTO packet (mac_src, mac_dst, ip_src, ip_dst, sport, dport, file_ptr, file_id, timestamp) values (:mac_src, :mac_dst, :ip_src, :ip_dst, :sport, :dport, :file_ptr, :file_id, :timestamp)";
+      
+        let mut stmt = self.conn.prepare(sql).unwrap();
+        self.conn.execute("BEGIN TRANSACTION", []).unwrap();
         for pkt in pkt_list.iter() {
-            tx.execute(
-                sql,
-                [
-                    pkt.src_mac,
-                    pkt.dst_mac,
-                    pkt.src_ip.into(),
-                    pkt.dst_ip.into(),
-                    pkt.sport.into(),
-                    pkt.dport.into(),
-                    pkt.pkt_ptr,
-                    pkt.file_no.into(),
-                    pkt.timestamp.into(),
-                ],
-            )
-            .unwrap();
+            stmt.execute(named_params! {
+                ":mac_src": pkt.src_mac,
+                ":mac_dst": pkt.dst_mac,
+                ":ip_src": pkt.src_ip,
+                ":ip_dst": pkt.dst_ip,
+                ":sport": pkt.sport,
+                ":dport": pkt.dport,
+                ":file_ptr": pkt.pkt_ptr,
+                ":file_id": pkt.file_no,
+                ":timestamp": pkt.timestamp,
+            }).unwrap();
         }
+        self.conn.execute("END TRANSACTION", []).unwrap();
 
-        tx.commit().unwrap();
     }
 
     pub fn new(db_filename: &String) -> Self {
@@ -77,10 +73,11 @@ impl Database {
         // .prepare_cached("insert into packet (sip,dip) values(?, ?)")
         // .unwrap();
         self.conn.execute_batch(
-            "PRAGMA journal_mode = OFF;
-                    PRAGMA synchronous = 0;
+            "PRAGMA journal_mode = MEMORY;
+                    PRAGMA synchronous = OFF;
                     PRAGMA cache_size = 1000000;
                     PRAGMA temp_store = MEMORY;
+                    PRAGMA threads=4;
                     PRAGMA locking_mode = EXCLUSIVE;",
         )
         .expect("PRAGMA");

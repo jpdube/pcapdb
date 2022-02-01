@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::io::Read;
 use std::iter::FromIterator;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 pub struct Token {
     pub token: String,
     pub value: String,

@@ -9,9 +9,8 @@ pub fn run() {
     let token_list: Vec<Token> = tokenize(line);
 
     println!("{}", line);
-    for t in token_list {
+    for t in &token_list {
         println!("{:?}", t);
 
     }
-    // println!("{:?}", token_list);
 }

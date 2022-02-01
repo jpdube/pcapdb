@@ -1,4 +1,4 @@
-use rusqlite::{Connection, Result, Transaction, named_params};
+use rusqlite::{named_params, Connection, Result, Transaction};
 
 pub struct DbInfo {
     pub timestamp: u32,
@@ -20,10 +20,8 @@ pub struct Database {
 }
 
 impl Database {
-
     pub fn save_many(&mut self, pkt_list: &Vec<DbInfo>) {
         let sql = "INSERT INTO packet (mac_src, mac_dst, ip_src, ip_dst, sport, dport, file_ptr, file_id, timestamp) values (:mac_src, :mac_dst, :ip_src, :ip_dst, :sport, :dport, :file_ptr, :file_id, :timestamp)";
-      
         let mut stmt = self.conn.prepare(sql).unwrap();
         self.conn.execute("BEGIN TRANSACTION", []).unwrap();
         for pkt in pkt_list.iter() {
@@ -37,10 +35,10 @@ impl Database {
                 ":file_ptr": pkt.pkt_ptr,
                 ":file_id": pkt.file_no,
                 ":timestamp": pkt.timestamp,
-            }).unwrap();
+            })
+            .unwrap();
         }
         self.conn.execute("END TRANSACTION", []).unwrap();
-
     }
 
     pub fn new(db_filename: &String) -> Self {
@@ -48,13 +46,12 @@ impl Database {
             filename: db_filename.to_string(),
             conn: Connection::open(db_filename).unwrap(),
         }
-
     }
 
     pub fn init(&self) {
-
-        self.conn.execute(
-            "create table if not exists packet (
+        self.conn
+            .execute(
+                "create table if not exists packet (
             id integer not null primary key, 
             ip_src integer,
             ip_dst integer, 
@@ -65,22 +62,22 @@ impl Database {
             file_ptr integer, 
             file_id integer,
             timestamp timestamp)",
-            [],
-        )
-        .unwrap();
+                [],
+            )
+            .unwrap();
 
         // let mut prep_insert = conn
         // .prepare_cached("insert into packet (sip,dip) values(?, ?)")
         // .unwrap();
-        self.conn.execute_batch(
-            "PRAGMA journal_mode = MEMORY;
+        self.conn
+            .execute_batch(
+                "PRAGMA journal_mode = MEMORY;
                     PRAGMA synchronous = OFF;
                     PRAGMA cache_size = 1000000;
                     PRAGMA temp_store = MEMORY;
                     PRAGMA threads=4;
                     PRAGMA locking_mode = EXCLUSIVE;",
-        )
-        .expect("PRAGMA");
-
+            )
+            .expect("PRAGMA");
     }
 }

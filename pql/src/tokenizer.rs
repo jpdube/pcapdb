@@ -25,11 +25,12 @@ fn init_token_one(keywords: &mut HashMap<&str, &str>) {
     keywords.insert(";", "EOL");
     keywords.insert("-", "MINUS");
     keywords.insert("+", "PLUS");
-    keywords.insert("*", "MULTIPLY");
+    keywords.insert("*", "STAR");
     keywords.insert("<", "LT");
     keywords.insert(">", "GT");
     keywords.insert("(", "LPAREN");
     keywords.insert(")", "RPAREN");
+    keywords.insert(",", "COMMA");
 }
 
 fn init_token_two(keywords: &mut HashMap<&str, &str>) {
@@ -206,14 +207,14 @@ mod tests {
 
     #[test]
     fn count_token() {
-        let line: &str = "select ip_src, ip_dst from sniffer_01";
+        let line = "select ip_src, ip_dst from sniffer_01";
         let token_list: Vec<Token> = tokenize(line);
-        assert!(token_list.len() == 6);
+        assert!(token_list.len() == 7);
     }
 
     #[test]
     fn date_token() {
-        let line: &str = "12-01-2022";
+        let line = "12-01-2022";
         let token_list: Vec<Token> = tokenize(line);
 
         assert!(token_list[0].token == "DATE");
@@ -221,7 +222,7 @@ mod tests {
 
     #[test]
     fn time_token() {
-        let line: &str = "14:33:56";
+        let line = "14:33:56";
         let token_list: Vec<Token> = tokenize(line);
 
         assert!(token_list[0].token == "TIME");
@@ -230,7 +231,7 @@ mod tests {
 
     #[test]
     fn ipv4_cidr_mask() {
-        let line: &str = "192.168.0.0/24";
+        let line = "192.168.0.0/24";
         let token_list: Vec<Token> = tokenize(line);
         assert!(token_list.len() == 4);
 
@@ -241,7 +242,7 @@ mod tests {
 
     #[test]
     fn ipv4_byte_mask() {
-        let line: &str = "192.168.0.0 / 255.255.255.0";
+        let line = "192.168.0.0 / 255.255.255.0";
         let token_list: Vec<Token> = tokenize(line);
         assert!(token_list.len() == 4);
 
@@ -252,31 +253,31 @@ mod tests {
 
     #[test]
     fn column_no() {
-        let line: &str = "select ip_dst, ip_src from sniffer_01 where dport = 443";
+        let line = "select ip_dst, ip_src from sniffer_01 where dport = 443";
         let tl: Vec<Token> = tokenize(line);
-        assert!(tl.len() == 10);
+        assert!(tl.len() == 11);
 
         assert!(tl[0].token == "SELECT" && tl[0].column == 1 && tl[0].line == 1);
         assert!(tl[1].token == "NAME" && tl[1].column == 8 && tl[1].line == 1);
-        assert!(tl[3].token == "FROM" && tl[3].column == 23 && tl[3].line == 1);
-        assert!(tl[5].token == "WHERE" && tl[5].column == 39 && tl[5].line == 1);
+        assert!(tl[4].token == "FROM" && tl[4].column == 23 && tl[4].line == 1);
+        assert!(tl[6].token == "WHERE" && tl[6].column == 39 && tl[6].line == 1);
     }
 
     #[test]
     fn multiline() {
-        let line: &str = "select ip_dst, ip_src\nfrom sniffer_01\nwhere dport = 443";
+        let line = "select ip_dst, ip_src\nfrom sniffer_01\nwhere dport = 443";
         let tl: Vec<Token> = tokenize(line);
-        assert!(tl.len() == 12);
+        assert!(tl.len() == 13);
 
         assert!(tl[0].token == "SELECT" && tl[0].column == 1 && tl[0].line == 1);
         assert!(tl[1].token == "NAME" && tl[1].column == 8 && tl[1].line == 1);
-        assert!(tl[4].token == "FROM" && tl[4].column == 1 && tl[4].line == 2);
-        assert!(tl[7].token == "WHERE" && tl[7].column == 1 && tl[7].line == 3);
+        assert!(tl[5].token == "FROM" && tl[5].column == 1 && tl[5].line == 2);
+        assert!(tl[8].token == "WHERE" && tl[8].column == 1 && tl[8].line == 3);
     }
 
     #[test]
     fn two_chars_tokens() {
-        let line: &str = ">= <=";
+        let line = ">= <=";
         let tl: Vec<Token> = tokenize(line);
         assert!(tl.len() == 3);
 
@@ -286,23 +287,24 @@ mod tests {
 
     #[test]
     fn one_chars_tokens() {
-        let line: &str = "< > = - + * / ;";
+        let line = "< > = - + * / , ;";
         let tl: Vec<Token> = tokenize(line);
-        assert!(tl.len() == 9);
+        assert!(tl.len() == 10);
 
         assert!(tl[0].token == "LT" && tl[0].column == 1 && tl[0].line == 1);
         assert!(tl[1].token == "GT" && tl[1].column == 3 && tl[1].line == 1);
         assert!(tl[2].token == "EQUAL" && tl[2].column == 5 && tl[2].line == 1);
         assert!(tl[3].token == "MINUS" && tl[3].column == 7 && tl[3].line == 1);
         assert!(tl[4].token == "PLUS" && tl[4].column == 9 && tl[4].line == 1);
-        assert!(tl[5].token == "MULTIPLY" && tl[5].column == 11 && tl[5].line == 1);
+        assert!(tl[5].token == "STAR" && tl[5].column == 11 && tl[5].line == 1);
         assert!(tl[6].token == "MASK" && tl[6].column == 13 && tl[6].line == 1);
-        assert!(tl[7].token == "EOL" && tl[7].column == 15 && tl[7].line == 1);
+        assert!(tl[7].token == "COMMA" && tl[7].column == 15 && tl[7].line == 1);
+        assert!(tl[8].token == "EOL" && tl[8].column == 17 && tl[8].line == 1);
     }
 
     #[test]
     fn grouping() {
-        let line: &str = "()";
+        let line = "()";
         let tl: Vec<Token> = tokenize(line);
         assert!(tl.len() == 3);
 

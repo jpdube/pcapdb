@@ -22,27 +22,6 @@ use crate::tokenizer::{tokenize, Token};
 
 */
 
-// struct Field {
-//     name: String,
-// }
-//
-// struct Select {
-//     fields: Vec<Field>,
-// }
-//
-// struct Source {
-//     name: String,
-// }
-//
-// struct From {
-//     sources: Vec<Source>,
-// }
-//
-// struct BinOP {
-//     op: String,
-//     left: String,
-//     right: String,
-// }
 
 pub struct Parser {
     filename: String,
@@ -63,8 +42,23 @@ impl Parser {
         }
     }
 
-    pub fn parse_file(&mut self, filename: String) {
-        self.filename = filename.clone();
+    pub fn execute(&mut self) {
+        let mut columns: Vec<Token> = vec![];
+
+        if self.expect("SELECT").is_some() {
+            while self.peek("NAME").is_some()   {
+                let t = self.accept("NAME").unwrap();
+                columns.push(t.clone());
+                if self.accept("COMMA").is_none() {
+                    break;
+                }
+            }
+        }
+        println!("Select field: {:?}", columns);
+    }
+
+    pub fn parse_file(&mut self, filename: &str) {
+        self.filename = filename.to_string();
         self.source = fs::read_to_string(filename).unwrap().parse().unwrap();
 
         self.tokens = tokenize(&self.source);
@@ -74,7 +68,7 @@ impl Parser {
         self.tokens.len()
     }
 
-    pub fn peek(&mut self, tlookup: String) -> Option<Token> {
+    pub fn peek(&mut self, tlookup: &str) -> Option<Token> {
         if self.lookahead.is_none() {
             self.lookahead = Some(self.next().unwrap());
         }
@@ -87,7 +81,7 @@ impl Parser {
         }
     }
 
-    pub fn accept(&mut self, tlookup: String) -> Option<Token> {
+    pub fn accept(&mut self, tlookup: &str) -> Option<Token> {
         let token = self.peek(tlookup);
 
         if token.is_some() {
@@ -97,7 +91,7 @@ impl Parser {
         token
     }
 
-    pub fn expect (&mut self, tlookup: String) -> Option<Token> {
+    pub fn expect (&mut self, tlookup: &str) -> Option<Token> {
         let token = self.peek(tlookup.clone());
 
         if token.is_none() {
@@ -132,22 +126,22 @@ mod tests {
     #[test]
     fn load_file() {
         let mut parser = Parser::new();
-        parser.parse_file(String::from("../examples/basic.pql"));
+        parser.parse_file("../examples/basic.pql");
         assert!(parser.token_count() == 11);
     }
 
     #[test]
     fn peek_one() {
         let mut parser = Parser::new();
-        parser.parse_file(String::from("../examples/basic.pql"));
+        parser.parse_file("../examples/basic.pql");
         assert!(parser.token_count() == 11);
-        match parser.peek(String::from("SELECT")) {
+        match parser.peek("SELECT") {
             Some(token) => {
-                println!("Token peek: {}", token.value);
+                // println!("Token peek: {}", token.value);
                 assert!(true)
             }
             None => {
-                println!("Token peek not found");
+                // println!("Token peek not found");
                 assert!(false)
             }
         }
@@ -155,26 +149,26 @@ mod tests {
     #[test]
     fn peek_two() {
         let mut parser = Parser::new();
-        parser.parse_file(String::from("../examples/basic.pql"));
+        parser.parse_file("../examples/basic.pql");
         assert!(parser.token_count() == 11);
-        match parser.peek(String::from("SELECT")) {
+        match parser.peek("SELECT") {
             Some(token) => {
-                println!("Token peek: {}", token.value);
-                parser.accept(String::from("SELECT"));
+                // println!("Token peek: {}", token.value);
+                parser.accept("SELECT");
                 assert!(true)
             }
             None => {
-                println!("Token peek not found");
+                // println!("Token peek not found");
                 assert!(false)
             }
         }
-        match parser.peek(String::from("NAME")) {
+        match parser.peek("NAME") {
             Some(token) => {
-                println!("Token peek: {}", token.value);
+                // println!("Token peek: {}", token.value);
                 assert!(true)
             }
             None => {
-                println!("Token peek not found");
+                // println!("Token peek not found");
                 assert!(false)
             }
         }
@@ -183,15 +177,15 @@ mod tests {
     #[test]
     fn expect_one_token() {
         let mut parser = Parser::new();
-        parser.parse_file(String::from("../examples/basic.pql"));
+        parser.parse_file("../examples/basic.pql");
         assert!(parser.token_count() == 11);
-        match parser.expect(String::from("FROM")) {
+        match parser.expect("FROM") {
             Some(token) => {
-                println!("Token peek: {}", token.value);
+                // println!("Token peek: {}", token.value);
                 assert!(false)
             }
             None => {
-                println!("Expected token not found");
+                // println!("Expected token not found");
                 assert!(true)
             }
         }
@@ -201,29 +195,47 @@ mod tests {
     #[test]
     fn expect_two_token() {
         let mut parser = Parser::new();
-        parser.parse_file(String::from("../examples/basic.pql"));
+        parser.parse_file("../examples/basic.pql");
         assert!(parser.token_count() == 11);
-        match parser.accept(String::from("SELECT")) {
+        match parser.accept("SELECT") {
             Some(token) => {
-                println!("Token peek: {}", token.value);
+                // println!("Token peek: {}", token.value);
                 assert!(true)
             }
             None => {
-                println!("Expected token not found");
+                // println!("Expected token not found");
                 assert!(false)
             }
         }
 
-        match parser.expect(String::from("FROM")) {
+        match parser.expect("FROM") {
             Some(token) => {
-                println!("Token peek: {}", token.value);
+                // println!("Token peek: {}", token.value);
                 assert!(false)
             }
             None => {
-                println!("Expected token not found");
+                // println!("Expected token not found");
                 assert!(true)
             }
         }
+
+    }
+
+    #[test]
+    fn execute() {
+        let mut parser = Parser::new();
+        parser.parse_file("../examples/execute_two_fields.pql");
+        assert!(parser.token_count() == 13);
+        parser.execute();
+        assert!(true)
+    }
+
+    #[test]
+    fn test_str_cmp() {
+        let str_a: &str = "This is string a";
+        let str_b: &str = "This is string a";
+
+        assert!(str_a == str_b)
 
     }
 }

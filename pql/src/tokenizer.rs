@@ -2,9 +2,48 @@ use std::collections::HashMap;
 use std::io::Read;
 use std::iter::FromIterator;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, PartialEq)]
+pub enum Keyword {
+    Select,
+    From,
+    Where,
+    Commit,
+    Interface,
+    Between,
+    OrderAsc,
+    OrderDesc,
+    Limit,
+    Offset,
+    Now,
+    Land,
+    Lor,
+    Band,
+    Bor,
+    Equal,
+    Mask,
+    Minus,
+    Plus,
+    Star,
+    Lt,
+    Gt,
+    Lparen,
+    Rparen,
+    Comma,
+    Le,
+    Ge,
+    IpV4,
+    Float,
+    Integer,
+    Date,
+    Time,
+    Identifier,
+    Eol,
+    Eof,
+}
+
+#[derive(Debug, Clone)]
 pub struct Token {
-    pub token: String,
+    pub token: Keyword,
     pub value: String,
     pub line: usize,
     pub column: usize,
@@ -19,39 +58,39 @@ pub fn load(filename: &str) -> String {
     return lines;
 }
 
-fn init_token_one(keywords: &mut HashMap<&str, &str>) {
-    keywords.insert("=", "EQUAL");
-    keywords.insert("/", "MASK");
-    keywords.insert(";", "EOL");
-    keywords.insert("-", "MINUS");
-    keywords.insert("+", "PLUS");
-    keywords.insert("*", "STAR");
-    keywords.insert("<", "LT");
-    keywords.insert(">", "GT");
-    keywords.insert("(", "LPAREN");
-    keywords.insert(")", "RPAREN");
-    keywords.insert(",", "COMMA");
+fn init_token_one(keywords: &mut HashMap<&str, Keyword>) {
+    keywords.insert("=", Keyword::Equal);
+    keywords.insert("/", Keyword::Mask);
+    keywords.insert(";", Keyword::Eol);
+    keywords.insert("-", Keyword::Minus);
+    keywords.insert("+", Keyword::Plus);
+    keywords.insert("*", Keyword::Star);
+    keywords.insert("<", Keyword::Lt);
+    keywords.insert(">", Keyword::Gt);
+    keywords.insert("(", Keyword::Lparen);
+    keywords.insert(")", Keyword::Rparen);
+    keywords.insert(",", Keyword::Comma);
 }
 
-fn init_token_two(keywords: &mut HashMap<&str, &str>) {
-    keywords.insert("<=", "LE");
-    keywords.insert(">=", "GE");
+fn init_token_two(keywords: &mut HashMap<&str, Keyword>) {
+    keywords.insert("<=", Keyword::Le);
+    keywords.insert(">=", Keyword::Ge);
 }
 
-fn init_keywords(keywords: &mut HashMap<&str, &str>) {
-    keywords.insert("select", "SELECT");
-    keywords.insert("from", "FROM");
-    keywords.insert("where", "WHERE");
-    keywords.insert("commit", "COMMIT");
-    keywords.insert("interface", "INTERFACE");
-    keywords.insert("and", "AND");
-    keywords.insert("or", "OR");
-    keywords.insert("between", "BETWEEN");
-    keywords.insert("order_asc", "ORDER ASC");
-    keywords.insert("order_desc", "ORDER DESC");
-    keywords.insert("limit", "LIMIT");
-    keywords.insert("offset", "OFFSET");
-    keywords.insert("now", "NOW");
+fn init_keywords(keywords: &mut HashMap<&str, Keyword>) {
+    keywords.insert("select", Keyword::Select);
+    keywords.insert("from", Keyword::From);
+    keywords.insert("where", Keyword::Where);
+    keywords.insert("commit", Keyword::Commit);
+    keywords.insert("interface", Keyword::Interface);
+    keywords.insert("and", Keyword::Land);
+    keywords.insert("or", Keyword::Lor);
+    keywords.insert("between", Keyword::Between);
+    keywords.insert("order_asc", Keyword::OrderAsc);
+    keywords.insert("order_desc", Keyword::OrderDesc);
+    keywords.insert("limit", Keyword::Limit);
+    keywords.insert("offset", Keyword::Offset);
+    keywords.insert("now", Keyword::Now);
 }
 
 pub fn tokenize(lines: &str) -> Vec<Token> {
@@ -73,7 +112,7 @@ pub fn tokenize(lines: &str) -> Vec<Token> {
         if s[index].is_whitespace() {
             if s[index] == '\n' {
                 let token = Token {
-                    token: String::from("EOL"),
+                    token: Keyword::Eol,
                     value: String::from("eol"),
                     column: (index + 1) - line_offset,
                     line: line,
@@ -83,29 +122,30 @@ pub fn tokenize(lines: &str) -> Vec<Token> {
                 line_offset = index + 1;
             }
             index += 1;
-        } else if (index + 2) <= s.len() && token_two.contains_key(&String::from_iter(s[index..index + 2].to_vec()) as &str) {
+        } else if (index + 2) <= s.len()
+            && token_two.contains_key(&String::from_iter(s[index..index + 2].to_vec()) as &str)
+        {
             let stoken: &str = &String::from_iter(s[index..index + 2].to_vec());
             let tok = token_two.get(stoken).unwrap();
             let token = Token {
-                token: String::from(tok.to_string()),
+                token: tok.to_owned(),
                 value: String::from(stoken),
                 column: (index + 1) - line_offset,
                 line,
             };
             token_list.push(token);
-            
+
             index += 2;
-        }
-        else if token_one.contains_key(&String::from(s[index]) as &str) {
+        } else if token_one.contains_key(&String::from(s[index]) as &str) {
             let tok = token_one.get(&String::from(s[index]) as &str).unwrap();
             let token = Token {
-                token: String::from(tok.to_string()),
+                token: tok.to_owned(),
                 value: String::from(s[index]),
                 column: (index + 1) - line_offset,
                 line,
             };
             token_list.push(token);
-            
+
             if s[index] == ';' {
                 line += 1;
             }
@@ -114,73 +154,77 @@ pub fn tokenize(lines: &str) -> Vec<Token> {
         } else if s[index].is_numeric() || s[index] == '.' || s[index] == '-' || s[index] == ':' {
             let start = index;
 
-            while index < s.len() && (s[index].is_numeric() || s[index] == '.' || s[index] == '-' || s[index] == ':') {
+            while index < s.len()
+                && (s[index].is_numeric() || s[index] == '.' || s[index] == '-' || s[index] == ':')
+            {
                 index += 1;
             }
 
             let number = String::from_iter(s[start..index].to_vec());
             if number.matches(".").count() == 3 {
                 let token = Token {
-                    token: String::from("IPV4"),
+                    token: Keyword::IpV4,
                     value: number,
                     column: (start + 1) - line_offset,
-                    line
+                    line,
                 };
                 token_list.push(token);
             } else if number.contains(".") {
                 let token = Token {
-                    token: String::from("FLOAT"),
+                    token: Keyword::Float,
                     value: number,
                     column: (start + 1) - line_offset,
-                    line
+                    line,
                 };
                 token_list.push(token);
             } else if number.matches("-").count() == 2 {
                 let token = Token {
-                    token: String::from("DATE"),
+                    token: Keyword::Date,
                     value: number,
                     column: (start + 1) - line_offset,
-                    line
+                    line,
                 };
                 token_list.push(token);
             } else if number.matches(":").count() == 2 {
                 let token = Token {
-                    token: String::from("TIME"),
+                    token: Keyword::Time,
                     value: number,
                     column: (start + 1) - line_offset,
-                    line
+                    line,
                 };
                 token_list.push(token);
             } else {
                 let token = Token {
-                    token: String::from("INTEGER"),
+                    token: Keyword::Integer,
                     value: number,
                     column: (start + 1) - line_offset,
-                    line
+                    line,
                 };
                 token_list.push(token);
             }
-        } else if s[index].is_alphabetic()  || s[index] == '_' {
+        } else if s[index].is_alphabetic() || s[index] == '_' {
             let start = index;
-            while index < s.len() && (s[index].is_alphabetic() || s[index].is_numeric() || s[index] == '_') {
+            while index < s.len()
+                && (s[index].is_alphabetic() || s[index].is_numeric() || s[index] == '_')
+            {
                 index += 1;
             }
             let keyword: &str = &String::from_iter(s[start..index].to_vec());
             if keywords.contains_key(keyword) {
                 let tok = keywords.get(&keyword).unwrap();
                 let token = Token {
-                    token: String::from(tok.to_string()),
+                    token: tok.to_owned(),
                     value: String::from(keyword),
                     column: (start + 1) - line_offset,
-                    line
+                    line,
                 };
                 token_list.push(token);
             } else {
                 let token = Token {
-                    token: String::from("NAME"),
+                    token: Keyword::Identifier,
                     value: String::from(keyword),
                     column: (start + 1) - line_offset,
-                    line
+                    line,
                 };
                 token_list.push(token);
             }
@@ -190,11 +234,11 @@ pub fn tokenize(lines: &str) -> Vec<Token> {
     }
 
     let token = Token {
-        token: String::from("EOF"),
+        token: Keyword::Eof,
         value: String::from("eof"),
         column: (index + 1) - line_offset,
         // column: s.len() + 1,
-        line: line
+        line: line,
     };
     token_list.push(token);
 
@@ -217,7 +261,7 @@ mod tests {
         let line = "12-01-2022";
         let token_list: Vec<Token> = tokenize(line);
 
-        assert!(token_list[0].token == "DATE");
+        assert!(token_list[0].token == Keyword::Date);
     }
 
     #[test]
@@ -225,9 +269,8 @@ mod tests {
         let line = "14:33:56";
         let token_list: Vec<Token> = tokenize(line);
 
-        assert!(token_list[0].token == "TIME");
+        assert!(token_list[0].token == Keyword::Time);
     }
-
 
     #[test]
     fn ipv4_cidr_mask() {
@@ -235,9 +278,9 @@ mod tests {
         let token_list: Vec<Token> = tokenize(line);
         assert!(token_list.len() == 4);
 
-        assert!(token_list[0].token == "IPV4");
-        assert!(token_list[1].token == "MASK");
-        assert!(token_list[2].token == "INTEGER");
+        assert!(token_list[0].token == Keyword::IpV4);
+        assert!(token_list[1].token == Keyword::Mask);
+        assert!(token_list[2].token == Keyword::Integer);
     }
 
     #[test]
@@ -246,9 +289,9 @@ mod tests {
         let token_list: Vec<Token> = tokenize(line);
         assert!(token_list.len() == 4);
 
-        assert!(token_list[0].token == "IPV4");
-        assert!(token_list[1].token == "MASK");
-        assert!(token_list[2].token == "IPV4");
+        assert!(token_list[0].token == Keyword::IpV4);
+        assert!(token_list[1].token == Keyword::Mask);
+        assert!(token_list[2].token == Keyword::IpV4);
     }
 
     #[test]
@@ -257,10 +300,10 @@ mod tests {
         let tl: Vec<Token> = tokenize(line);
         assert!(tl.len() == 11);
 
-        assert!(tl[0].token == "SELECT" && tl[0].column == 1 && tl[0].line == 1);
-        assert!(tl[1].token == "NAME" && tl[1].column == 8 && tl[1].line == 1);
-        assert!(tl[4].token == "FROM" && tl[4].column == 23 && tl[4].line == 1);
-        assert!(tl[6].token == "WHERE" && tl[6].column == 39 && tl[6].line == 1);
+        assert!(tl[0].token == Keyword::Select && tl[0].column == 1 && tl[0].line == 1);
+        assert!(tl[1].token == Keyword::Identifier && tl[1].column == 8 && tl[1].line == 1);
+        assert!(tl[4].token == Keyword::From && tl[4].column == 23 && tl[4].line == 1);
+        assert!(tl[6].token == Keyword::Where && tl[6].column == 39 && tl[6].line == 1);
     }
 
     #[test]
@@ -269,10 +312,10 @@ mod tests {
         let tl: Vec<Token> = tokenize(line);
         assert!(tl.len() == 13);
 
-        assert!(tl[0].token == "SELECT" && tl[0].column == 1 && tl[0].line == 1);
-        assert!(tl[1].token == "NAME" && tl[1].column == 8 && tl[1].line == 1);
-        assert!(tl[5].token == "FROM" && tl[5].column == 1 && tl[5].line == 2);
-        assert!(tl[8].token == "WHERE" && tl[8].column == 1 && tl[8].line == 3);
+        assert!(tl[0].token == Keyword::Select && tl[0].column == 1 && tl[0].line == 1);
+        assert!(tl[1].token == Keyword::Identifier && tl[1].column == 8 && tl[1].line == 1);
+        assert!(tl[5].token == Keyword::From && tl[5].column == 1 && tl[5].line == 2);
+        assert!(tl[8].token == Keyword::Where && tl[8].column == 1 && tl[8].line == 3);
     }
 
     #[test]
@@ -281,8 +324,8 @@ mod tests {
         let tl: Vec<Token> = tokenize(line);
         assert!(tl.len() == 3);
 
-        assert!(tl[0].token == "GE" && tl[0].column == 1 && tl[0].line == 1);
-        assert!(tl[1].token == "LE" && tl[1].column == 4 && tl[1].line == 1);
+        assert!(tl[0].token == Keyword::Ge && tl[0].column == 1 && tl[0].line == 1);
+        assert!(tl[1].token == Keyword::Le && tl[1].column == 4 && tl[1].line == 1);
     }
 
     #[test]
@@ -291,15 +334,15 @@ mod tests {
         let tl: Vec<Token> = tokenize(line);
         assert!(tl.len() == 10);
 
-        assert!(tl[0].token == "LT" && tl[0].column == 1 && tl[0].line == 1);
-        assert!(tl[1].token == "GT" && tl[1].column == 3 && tl[1].line == 1);
-        assert!(tl[2].token == "EQUAL" && tl[2].column == 5 && tl[2].line == 1);
-        assert!(tl[3].token == "MINUS" && tl[3].column == 7 && tl[3].line == 1);
-        assert!(tl[4].token == "PLUS" && tl[4].column == 9 && tl[4].line == 1);
-        assert!(tl[5].token == "STAR" && tl[5].column == 11 && tl[5].line == 1);
-        assert!(tl[6].token == "MASK" && tl[6].column == 13 && tl[6].line == 1);
-        assert!(tl[7].token == "COMMA" && tl[7].column == 15 && tl[7].line == 1);
-        assert!(tl[8].token == "EOL" && tl[8].column == 17 && tl[8].line == 1);
+        assert!(tl[0].token == Keyword::Lt && tl[0].column == 1 && tl[0].line == 1);
+        assert!(tl[1].token == Keyword::Gt && tl[1].column == 3 && tl[1].line == 1);
+        assert!(tl[2].token == Keyword::Equal && tl[2].column == 5 && tl[2].line == 1);
+        assert!(tl[3].token == Keyword::Minus && tl[3].column == 7 && tl[3].line == 1);
+        assert!(tl[4].token == Keyword::Plus && tl[4].column == 9 && tl[4].line == 1);
+        assert!(tl[5].token == Keyword::Star && tl[5].column == 11 && tl[5].line == 1);
+        assert!(tl[6].token == Keyword::Mask && tl[6].column == 13 && tl[6].line == 1);
+        assert!(tl[7].token == Keyword::Comma && tl[7].column == 15 && tl[7].line == 1);
+        assert!(tl[8].token == Keyword::Eol && tl[8].column == 17 && tl[8].line == 1);
     }
 
     #[test]
@@ -308,9 +351,7 @@ mod tests {
         let tl: Vec<Token> = tokenize(line);
         assert!(tl.len() == 3);
 
-        assert!(tl[0].token == "LPAREN" && tl[0].column == 1 && tl[0].line == 1);
-        assert!(tl[1].token == "RPAREN" && tl[1].column == 2 && tl[1].line == 1);
+        assert!(tl[0].token == Keyword::Lparen && tl[0].column == 1 && tl[0].line == 1);
+        assert!(tl[1].token == Keyword::Rparen && tl[1].column == 2 && tl[1].line == 1);
     }
-
 }
-

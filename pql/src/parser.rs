@@ -2,7 +2,7 @@ use std::error::Error;
 use std::fs;
 use std::io::Read;
 
-use crate::tokenizer::{tokenize, Token};
+use crate::tokenizer::{tokenize, Keyword, Token};
 
 /*
     Goals of the parser and executer
@@ -21,7 +21,6 @@ use crate::tokenizer::{tokenize, Token};
         b- Build and run the filter for the packet scan
 
 */
-
 
 pub struct Parser {
     filename: String,
@@ -45,11 +44,11 @@ impl Parser {
     pub fn execute(&mut self) {
         let mut columns: Vec<Token> = vec![];
 
-        if self.expect("SELECT").is_some() {
-            while self.peek("NAME").is_some()   {
-                let t = self.accept("NAME").unwrap();
+        if self.expect(Keyword::Select).is_some() {
+            while self.peek(Keyword::Identifier).is_some() {
+                let t = self.accept(Keyword::Identifier).unwrap();
                 columns.push(t.clone());
-                if self.accept("COMMA").is_none() {
+                if self.accept(Keyword::Comma).is_none() {
                     break;
                 }
             }
@@ -68,20 +67,19 @@ impl Parser {
         self.tokens.len()
     }
 
-    pub fn peek(&mut self, tlookup: &str) -> Option<Token> {
+    pub fn peek(&mut self, tlookup: Keyword) -> Option<Token> {
         if self.lookahead.is_none() {
             self.lookahead = Some(self.next().unwrap());
         }
 
         if self.lookahead.as_ref().unwrap().token == tlookup {
             self.lookahead.clone()
-        }
-        else {
+        } else {
             None
         }
     }
 
-    pub fn accept(&mut self, tlookup: &str) -> Option<Token> {
+    pub fn accept(&mut self, tlookup: Keyword) -> Option<Token> {
         let token = self.peek(tlookup);
 
         if token.is_some() {
@@ -91,19 +89,20 @@ impl Parser {
         token
     }
 
-    pub fn expect (&mut self, tlookup: &str) -> Option<Token> {
+    pub fn expect(&mut self, tlookup: Keyword) -> Option<Token> {
         let token = self.peek(tlookup.clone());
 
         if token.is_none() {
             let lookup = self.lookahead.as_ref().unwrap();
-            println!("Syntax error expecting {} found {} at {}:{}", tlookup, lookup.value, lookup.line, lookup.column); 
+            println!(
+                "Syntax error expecting {:?} found {} at {}:{}",
+                tlookup, lookup.value, lookup.line, lookup.column
+            );
             None
-        }
-        else {
+        } else {
             self.lookahead = None;
             token
         }
-
     }
 
     fn next(&mut self) -> Option<Token> {
@@ -112,8 +111,7 @@ impl Parser {
         if self.ptr + 1 < self.token_count() {
             self.ptr += 1;
             token
-        }
-        else {
+        } else {
             None
         }
     }
@@ -135,7 +133,7 @@ mod tests {
         let mut parser = Parser::new();
         parser.parse_file("../examples/basic.pql");
         assert!(parser.token_count() == 11);
-        match parser.peek("SELECT") {
+        match parser.peek(Keyword::Select) {
             Some(token) => {
                 // println!("Token peek: {}", token.value);
                 assert!(true)
@@ -151,10 +149,10 @@ mod tests {
         let mut parser = Parser::new();
         parser.parse_file("../examples/basic.pql");
         assert!(parser.token_count() == 11);
-        match parser.peek("SELECT") {
+        match parser.peek(Keyword::Select) {
             Some(token) => {
                 // println!("Token peek: {}", token.value);
-                parser.accept("SELECT");
+                parser.accept(Keyword::Select);
                 assert!(true)
             }
             None => {
@@ -162,7 +160,7 @@ mod tests {
                 assert!(false)
             }
         }
-        match parser.peek("NAME") {
+        match parser.peek(Keyword::Identifier) {
             Some(token) => {
                 // println!("Token peek: {}", token.value);
                 assert!(true)
@@ -179,7 +177,7 @@ mod tests {
         let mut parser = Parser::new();
         parser.parse_file("../examples/basic.pql");
         assert!(parser.token_count() == 11);
-        match parser.expect("FROM") {
+        match parser.expect(Keyword::From) {
             Some(token) => {
                 // println!("Token peek: {}", token.value);
                 assert!(false)
@@ -189,7 +187,6 @@ mod tests {
                 assert!(true)
             }
         }
-
     }
 
     #[test]
@@ -197,7 +194,7 @@ mod tests {
         let mut parser = Parser::new();
         parser.parse_file("../examples/basic.pql");
         assert!(parser.token_count() == 11);
-        match parser.accept("SELECT") {
+        match parser.accept(Keyword::Select) {
             Some(token) => {
                 // println!("Token peek: {}", token.value);
                 assert!(true)
@@ -208,7 +205,7 @@ mod tests {
             }
         }
 
-        match parser.expect("FROM") {
+        match parser.expect(Keyword::From) {
             Some(token) => {
                 // println!("Token peek: {}", token.value);
                 assert!(false)
@@ -218,7 +215,6 @@ mod tests {
                 assert!(true)
             }
         }
-
     }
 
     #[test]
@@ -236,6 +232,5 @@ mod tests {
         let str_b: &str = "This is string a";
 
         assert!(str_a == str_b)
-
     }
 }

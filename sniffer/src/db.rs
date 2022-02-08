@@ -65,7 +65,14 @@ impl Database {
                 [],
             )
             .unwrap();
-
+// CREATE INDEX index_name
+// ON table_name (column_name);
+        self.conn
+            .execute(
+                "create index if not exists by_timestamp on packet (timestamp);",
+                [],
+            )
+            .unwrap();
         // let mut prep_insert = conn
         // .prepare_cached("insert into packet (sip,dip) values(?, ?)")
         // .unwrap();
@@ -75,8 +82,8 @@ impl Database {
                     PRAGMA synchronous = OFF;
                     PRAGMA cache_size = 1000000;
                     PRAGMA temp_store = MEMORY;
-                    PRAGMA threads=4;
-                    PRAGMA locking_mode = EXCLUSIVE;",
+                    PRAGMA threads=4;"
+                    // PRAGMA locking_mode = EXCLUSIVE;",
             )
             .expect("PRAGMA");
     }

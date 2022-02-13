@@ -82,6 +82,7 @@ pub fn capture(device_name: &String) -> Result<(), pcap::Error> {
                 src_mac: pkt.src_mac(),
                 dst_mac: pkt.dst_mac(),
                 ether_type: pkt.ether_type(),
+                vlan_id: pkt.vlan_id(),
                 ip_proto: pkt.ip_proto(),
                 src_ip: pkt.src_ip(),
                 dst_ip: pkt.dst_ip(),
@@ -119,14 +120,22 @@ pub fn capture(device_name: &String) -> Result<(), pcap::Error> {
 
             let mut total: usize = 0;
             while let Ok(packet) = cap.next() {
-                let pkt = PacketRef {
-                    raw_packet: packet.data.to_vec(),
-                    inc_len: packet.header.len,
-                    orig_len: packet.header.caplen,
-                    ts_sec: packet.header.ts.tv_sec as u32,
-                    ts_usec: packet.header.ts.tv_usec as u32,
-                    header_only: true,
-                };
+                let mut pkt = PacketRef::new (packet.header.len,
+                    packet.header.caplen,
+                    packet.header.ts.tv_sec as u32,
+                    packet.header.ts.tv_usec as u32,
+                    true,
+                );
+                pkt.set_packet(packet.data.to_vec());
+                // let pkt = PacketRef {
+                //     raw_packet: packet.data.to_vec(),
+                //     inc_len: packet.header.len,
+                //     orig_len: packet.header.caplen,
+                //     ts_sec: packet.header.ts.tv_sec as u32,
+                //     ts_usec: packet.header.ts.tv_usec as u32,
+                //     header_only: true,
+                //     vo: 1
+                // };
 
                 total += 1;
 

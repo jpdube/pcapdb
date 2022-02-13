@@ -7,6 +7,7 @@ const UDP_HEADER_LEN: u8 = 8;
 const ETHER_IPV4_PROTO: u16 = 0x0800;
 const ETHER_IPV6_PROTO: u16 = 0x08DD;
 const ETHER_ARP_PROTO: u16 = 0x0806;
+const ETHER_8021Q: u16 = 0x8100;
 
 const IP_TCP_PROTO: u8 = 0x06;
 const IP_UDP_PROTO: u8 = 0x11;
@@ -20,21 +21,43 @@ pub struct PacketRef {
     pub ts_usec: u32,
     pub inc_len: u32,
     pub orig_len: u32,
-    pub raw_packet: Vec<u8>,
-    pub header_only: bool
+    pub header_only: bool,
+    raw_packet: Vec<u8>,
+    vo: usize
 }
 
 impl PacketRef {
 
-    pub fn new () -> Self {
+    pub fn new (inc_len: u32, orig_len: u32, ts_sec: u32, ts_usec: u32, header_only: bool) -> Self {
         Self {
+            inc_len,
+            orig_len,
+            ts_sec,
+            ts_usec,
+            header_only,
+            vo: 0,
             raw_packet: vec![0],
-            inc_len: 0,
-            orig_len: 0,
-            ts_sec: 0,
-            ts_usec: 0,
-            header_only: true
         }         
+    }
+
+    pub fn set_packet(&mut self, packet: Vec<u8>) {
+        self.raw_packet = packet;
+        if self.ether_header() == 0x8100 {
+            self.vo = 4;
+        }
+
+    }
+
+    pub fn vlan_id(&self) -> u16 {
+        let mut vlan:u16 = 1;
+
+        if self.ether_header() == ETHER_8021Q {
+            vlan = (self.raw_packet[14] as u16) << 8;
+            vlan += self.raw_packet[15] as u16;
+        }
+
+        vlan
+
     }
 
     pub fn pkt_header(&mut self, header_only: bool) -> [u8; 16] {
@@ -97,7 +120,7 @@ impl PacketRef {
         mac_addr
     }
 
-    pub fn ether_type(&self) -> u16 {
+    pub fn ether_header(&self) -> u16 {
         let mut etype: u16;
 
         etype = (self.raw_packet[12] as u16) << 8;
@@ -106,14 +129,29 @@ impl PacketRef {
         etype
     }
 
+    pub fn ether_type(&self) -> u16 {
+        let mut etype: u16;
+
+        if self.ether_header() != ETHER_8021Q {
+            etype = (self.raw_packet[12] as u16) << 8;
+            etype += self.raw_packet[13] as u16;
+        }
+        else {
+            etype = (self.raw_packet[16] as u16) << 8;
+            etype += self.raw_packet[17] as u16;
+
+        }
+        etype
+    }
+
     pub fn src_ip(&self) -> u32 {
         let mut ip_addr: u32 = 0;
 
         if self.ether_type() == ETHER_IPV4_PROTO {
-            ip_addr = (self.raw_packet[26] as u32) << 24;
-            ip_addr += (self.raw_packet[27] as u32) << 16;
-            ip_addr += (self.raw_packet[28] as u32) << 8;
-            ip_addr += self.raw_packet[29] as u32;
+            ip_addr = (self.raw_packet[26 + self.vo] as u32) << 24;
+            ip_addr += (self.raw_packet[27 + self.vo] as u32) << 16;
+            ip_addr += (self.raw_packet[28 + self.vo] as u32) << 8;
+            ip_addr += self.raw_packet[29 + self.vo] as u32;
         }
 
         ip_addr
@@ -123,10 +161,10 @@ impl PacketRef {
         let mut ip_addr: u32 = 0;
 
         if self.ether_type() == ETHER_IPV4_PROTO {
-            ip_addr = (self.raw_packet[30] as u32) << 24;
-            ip_addr += (self.raw_packet[31] as u32) << 16;
-            ip_addr += (self.raw_packet[32] as u32) << 8;
-            ip_addr += self.raw_packet[33] as u32;
+            ip_addr = (self.raw_packet[30 + self.vo] as u32) << 24;
+            ip_addr += (self.raw_packet[31 + self.vo] as u32) << 16;
+            ip_addr += (self.raw_packet[32 + self.vo] as u32) << 8;
+            ip_addr += self.raw_packet[33 + self.vo] as u32;
         }
 
         ip_addr
@@ -136,7 +174,7 @@ impl PacketRef {
         let mut ip_proto: u8 = 0;
 
         if self.ether_type() == ETHER_IPV4_PROTO {
-            ip_proto = self.raw_packet[23];
+            ip_proto = self.raw_packet[23 + self.vo];
         }
 
         ip_proto
@@ -146,8 +184,8 @@ impl PacketRef {
         let mut port: u16 = 0;
 
         if self.ip_proto() == IP_UDP_PROTO || self.ip_proto() == IP_TCP_PROTO {
-            port = (self.raw_packet[34] as u16) << 8;
-            port += self.raw_packet[35] as u16;
+            port = (self.raw_packet[34 + self.vo] as u16) << 8;
+            port += self.raw_packet[35 + self.vo] as u16;
         }
 
         port
@@ -157,8 +195,8 @@ impl PacketRef {
         let mut port: u16 = 0;
 
         if self.ip_proto() == IP_UDP_PROTO || self.ip_proto() == IP_TCP_PROTO {
-            port = (self.raw_packet[36] as u16) << 8;
-            port += self.raw_packet[37] as u16;
+            port = (self.raw_packet[36 + self.vo] as u16) << 8;
+            port += self.raw_packet[37 + self.vo] as u16;
         }
 
         port

@@ -37,7 +37,11 @@ pub enum Keyword {
     Date,
     Time,
     Identifier,
-    Eol,
+    Drop,
+    Use,
+    Delete,
+    Update,
+    Semi,
     Eof,
 }
 
@@ -61,7 +65,7 @@ pub fn load(filename: &str) -> String {
 fn init_token_one(keywords: &mut HashMap<&str, Keyword>) {
     keywords.insert("=", Keyword::Equal);
     keywords.insert("/", Keyword::Mask);
-    keywords.insert(";", Keyword::Eol);
+    keywords.insert(";", Keyword::Semi);
     keywords.insert("-", Keyword::Minus);
     keywords.insert("+", Keyword::Plus);
     keywords.insert("*", Keyword::Star);
@@ -91,6 +95,10 @@ fn init_keywords(keywords: &mut HashMap<&str, Keyword>) {
     keywords.insert("limit", Keyword::Limit);
     keywords.insert("offset", Keyword::Offset);
     keywords.insert("now", Keyword::Now);
+    keywords.insert("drop", Keyword::Drop);
+    keywords.insert("use", Keyword::Use);
+    keywords.insert("delete", Keyword::Delete);
+    keywords.insert("update", Keyword::Update);
 }
 
 pub fn tokenize(lines: &str) -> Vec<Token> {
@@ -111,13 +119,13 @@ pub fn tokenize(lines: &str) -> Vec<Token> {
     while index < s.len() {
         if s[index].is_whitespace() {
             if s[index] == '\n' {
-                let token = Token {
-                    token: Keyword::Eol,
-                    value: String::from("eol"),
-                    column: (index + 1) - line_offset,
-                    line: line,
-                };
-                token_list.push(token);
+                // let token = Token {
+                //     token: Keyword::Eol,
+                //     value: String::from("eol"),
+                //     column: (index + 1) - line_offset,
+                //     line: line,
+                // };
+                // token_list.push(token);
                 line += 1;
                 line_offset = index + 1;
             }
@@ -342,7 +350,7 @@ mod tests {
         assert!(tl[5].token == Keyword::Star && tl[5].column == 11 && tl[5].line == 1);
         assert!(tl[6].token == Keyword::Mask && tl[6].column == 13 && tl[6].line == 1);
         assert!(tl[7].token == Keyword::Comma && tl[7].column == 15 && tl[7].line == 1);
-        assert!(tl[8].token == Keyword::Eol && tl[8].column == 17 && tl[8].line == 1);
+        assert!(tl[8].token == Keyword::Semi && tl[8].column == 17 && tl[8].line == 1);
     }
 
     #[test]
@@ -353,5 +361,81 @@ mod tests {
 
         assert!(tl[0].token == Keyword::Lparen && tl[0].column == 1 && tl[0].line == 1);
         assert!(tl[1].token == Keyword::Rparen && tl[1].column == 2 && tl[1].line == 1);
+    }
+
+    #[test]
+    fn test_select() {
+        let line = "select";
+        let tl: Vec<Token> = tokenize(line);
+        assert!(tl.len() == 2);
+
+        assert!(tl[0].token == Keyword::Select && tl[0].column == 1 && tl[0].line == 1);
+    }
+    #[test]
+    fn test_from() {
+        let line = "from";
+        let tl: Vec<Token> = tokenize(line);
+        assert!(tl.len() == 2);
+
+        assert!(tl[0].token == Keyword::From && tl[0].column == 1 && tl[0].line == 1);
+    }
+    #[test]
+    fn test_where() {
+        let line = "where";
+        let tl: Vec<Token> = tokenize(line);
+        assert!(tl.len() == 2);
+
+        assert!(tl[0].token == Keyword::Where && tl[0].column == 1 && tl[0].line == 1);
+    }
+    #[test]
+    fn test_order_asc() {
+        let line = "order_asc";
+        let tl: Vec<Token> = tokenize(line);
+        assert!(tl.len() == 2);
+
+        assert!(tl[0].token == Keyword::OrderAsc && tl[0].column == 1 && tl[0].line == 1);
+    }
+    #[test]
+    fn test_order_desc() {
+        let line = "order_desc";
+        let tl: Vec<Token> = tokenize(line);
+        assert!(tl.len() == 2);
+
+        assert!(tl[0].token == Keyword::OrderDesc && tl[0].column == 1 && tl[0].line == 1);
+    }
+    #[test]
+    fn test_use() {
+        let line = "use";
+        let tl: Vec<Token> = tokenize(line);
+        assert!(tl.len() == 2);
+
+        assert!(tl[0].token == Keyword::Use && tl[0].column == 1 && tl[0].line == 1);
+    }
+
+    #[test]
+    fn test_drop() {
+        let line = "drop";
+        let tl: Vec<Token> = tokenize(line);
+        assert!(tl.len() == 2);
+
+        assert!(tl[0].token == Keyword::Drop && tl[0].column == 1 && tl[0].line == 1);
+    }
+
+    #[test]
+    fn test_update() {
+        let line = "update";
+        let tl: Vec<Token> = tokenize(line);
+        assert!(tl.len() == 2);
+
+        assert!(tl[0].token == Keyword::Update && tl[0].column == 1 && tl[0].line == 1);
+    }
+
+    #[test]
+    fn test_delete() {
+        let line = "delete";
+        let tl: Vec<Token> = tokenize(line);
+        assert!(tl.len() == 2);
+
+        assert!(tl[0].token == Keyword::Delete && tl[0].column == 1 && tl[0].line == 1);
     }
 }

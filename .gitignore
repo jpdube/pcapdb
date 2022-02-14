@@ -5,3 +5,4 @@ pcap/
 *.db
 *.pcap
 *.paw
+.vscode

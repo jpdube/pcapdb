@@ -2,32 +2,33 @@ use std::env;
 
 mod config;
 mod db_config;
-// mod dbmongo;
 mod packetref;
 mod sniffer;
 mod db;
 use config::Config;
-// use dbmongo::MDatabase;
 use db::Database;
-use pql;
+// use pql;
 
 #[warn(dead_code)]
 fn main() {
     let args: Vec<String> = env::args().collect();
-    println!("Packet capture");
+    about();
     println!("{:?}", args);
-    pql::run();
+    // pql::run();
+
     let config: Config = config::read(&args[1]);
     println!("Db path: {}", config.db_path);
-    // let database: Database = Database::new(&format!("{config.db_path}/sql-index.db"));
-    // database.init();
-
-    // let database: MDatabase = MDatabase::new();
-    // database.init();
-
 
     if args.len() == 3 {
         println!("Target device is: {}", args[2]);
         sniffer::capture(&args[2]).unwrap();
     }
+}
+
+fn about() {
+    println!("");
+    println!("PCAPDB Packet database and collector");
+    println!("Numa Informatique Inc");
+    println!("Version 0.1");
+    println!("------------------------------------");
 }

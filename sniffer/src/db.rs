@@ -22,14 +22,16 @@ pub struct Database {
 
 impl Database {
     pub fn save_many(&mut self, pkt_list: &Vec<DbInfo>) {
-        let sql = "INSERT INTO packet (mac_src, mac_dst, vlan_id, ip_src, ip_dst, sport, dport, file_ptr, file_id, timestamp) values (:mac_src, :mac_dst, :vlan_id, :ip_src, :ip_dst, :sport, :dport, :file_ptr, :file_id, :timestamp)";
+        let sql = "INSERT INTO packet (mac_src, mac_dst, ether_type, vlan_id, ip_proto, ip_src, ip_dst, sport, dport, file_ptr, file_id, timestamp) values (:mac_src, :mac_dst, :ether_type, :vlan_id, :ip_proto, :ip_src, :ip_dst, :sport, :dport, :file_ptr, :file_id, :timestamp)";
         let mut stmt = self.conn.prepare(sql).unwrap();
         self.conn.execute("BEGIN TRANSACTION", []).unwrap();
         for pkt in pkt_list.iter() {
             stmt.execute(named_params! {
                 ":mac_src": pkt.src_mac,
                 ":mac_dst": pkt.dst_mac,
+                ":ether_type": pkt.ether_type,
                 ":vlan_id": pkt.vlan_id,
+                ":ip_proto": pkt.ip_proto,
                 ":ip_src": pkt.src_ip,
                 ":ip_dst": pkt.dst_ip,
                 ":sport": pkt.sport,
@@ -59,6 +61,8 @@ impl Database {
             ip_dst integer, 
             mac_src integer, 
             mac_dst integer, 
+            ether_type integer,
+            ip_proto integer,
             vlan_id integer,
             sport integer, 
             dport integer, 
@@ -68,8 +72,8 @@ impl Database {
                 [],
             )
             .unwrap();
-// CREATE INDEX index_name
-// ON table_name (column_name);
+        // CREATE INDEX index_name
+        // ON table_name (column_name);
         self.conn
             .execute(
                 "create index if not exists by_timestamp on packet (timestamp);",
@@ -78,31 +82,31 @@ impl Database {
             .unwrap();
         self.conn
             .execute(
-                 "create index if not exists by_ip_src on packet (ip_src);",
+                "create index if not exists by_ip_src on packet (ip_src);",
                 [],
             )
             .unwrap();
         self.conn
             .execute(
-                 "create index if not exists by_ip_dst on packet (ip_dst);",
+                "create index if not exists by_ip_dst on packet (ip_dst);",
+                [],
+            )
+            .unwrap();
+        self.conn
+            .execute("create index if not exists by_sport on packet (sport);", [])
+            .unwrap();
+        self.conn
+            .execute("create index if not exists by_dport on packet (dport)", [])
+            .unwrap();
+        self.conn
+            .execute(
+                "create index if not exists by_vlan_id on packet (vlan_id)",
                 [],
             )
             .unwrap();
         self.conn
             .execute(
-                 "create index if not exists by_sport on packet (sport);",
-                [],
-            )
-            .unwrap();
-        self.conn
-            .execute(
-                 "create index if not exists by_dport on packet (dport)",
-                [],
-            )
-            .unwrap();
-        self.conn
-            .execute(
-                 "create index if not exists by_vlan_id on packet (vlan_id)",
+                "create index if not exists by_ip_proto on packet (ip_proto)",
                 [],
             )
             .unwrap();
@@ -112,8 +116,7 @@ impl Database {
                     PRAGMA synchronous = OFF;
                     PRAGMA cache_size = 1000000;
                     PRAGMA temp_store = MEMORY;
-                    PRAGMA threads=4;"
-                    // PRAGMA locking_mode = EXCLUSIVE;",
+                    PRAGMA threads=4;", // PRAGMA locking_mode = EXCLUSIVE;",
             )
             .expect("PRAGMA");
     }

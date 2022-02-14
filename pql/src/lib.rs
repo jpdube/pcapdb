@@ -1,6 +1,9 @@
 mod tokenizer;
 mod parser;
+mod models;
+mod scanner;
 use tokenizer::{tokenize, Token};
+use models::Select;
 
 pub fn run() {
     let line: &str = "select ip_dst, ip_src\nfrom sniffer_01\nwhere dport = 443 and (ip_src = 192.168.1.22 or ip_src = 192.168.1.23)\n";
@@ -13,4 +16,8 @@ pub fn run() {
         println!("{:?}", t);
 
     }
+
+
+    let select = Select {fields: vec![String::from("ip_src"), String::from("ip_dst")]};
+    println!("{}", select);
 }

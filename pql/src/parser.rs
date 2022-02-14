@@ -41,13 +41,48 @@ impl Parser {
         }
     }
 
+    pub fn run(&mut self) {
+        while self.peek(Keyword::Semi).is_none() {
+            if self.accept(Keyword::Select).is_some() {
+                println!("***FOUND SELECT");
+                //--- Get fields
+                while self.peek(Keyword::Identifier).is_some() {
+                    let name = self.expect(Keyword::Identifier);
+                    if name.is_some() {
+                        println!("Field {:#?}", name.unwrap())
+                    }
+                    if self.accept(Keyword::Comma).is_none() {
+                        break;
+                    }
+                }
+                //--- Get from
+                if self.accept(Keyword::From).is_some() {
+                    println!("***FOUND FROM");
+                    //--- Get fields
+                    while self.peek(Keyword::Identifier).is_some() {
+                        let name = self.expect(Keyword::Identifier);
+                        if name.is_some() {
+                            println!("Field {:#?}", name.unwrap())
+                        }
+                        if self.accept(Keyword::Comma).is_none() {
+                            break;
+                        }
+                    }
+
+                }
+            }
+        }
+    }
+
     pub fn execute(&mut self) {
         let mut columns: Vec<Token> = vec![];
 
-        if self.expect(Keyword::Select).is_some() {
+        let s = self.expect(Keyword::Select);
+        if s.is_some() {
+            columns.push(s.unwrap());
             while self.peek(Keyword::Identifier).is_some() {
                 let t = self.accept(Keyword::Identifier).unwrap();
-                columns.push(t.clone());
+                columns.push(t);
                 if self.accept(Keyword::Comma).is_none() {
                     break;
                 }
@@ -63,19 +98,29 @@ impl Parser {
         self.tokens = tokenize(&self.source);
     }
 
+    pub fn parse_str(&mut self, source: &str) {
+        self.source = source.to_string();
+
+        self.tokens = tokenize(&self.source);
+    }
+
     pub fn token_count(&self) -> usize {
         self.tokens.len()
     }
 
     pub fn peek(&mut self, tlookup: Keyword) -> Option<Token> {
         if self.lookahead.is_none() {
-            self.lookahead = Some(self.next().unwrap());
+            self.lookahead = self.next();
         }
 
-        if self.lookahead.as_ref().unwrap().token == tlookup {
-            self.lookahead.clone()
-        } else {
+        if self.lookahead.is_none() {
             None
+        } else {
+            if self.lookahead.as_ref().unwrap().token == tlookup {
+                self.lookahead.clone()
+            } else {
+                None
+            }
         }
     }
 
@@ -108,7 +153,8 @@ impl Parser {
     fn next(&mut self) -> Option<Token> {
         let token: Option<Token> = Some(self.tokens[self.ptr].clone());
 
-        if self.ptr + 1 < self.token_count() {
+        // println!("Next index: {},{}", self.ptr, self.token_count());
+        if self.ptr + 1 <= self.token_count() {
             self.ptr += 1;
             token
         } else {
@@ -122,17 +168,25 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_run() {
+        let mut parser = Parser::new();
+        parser.parse_str("select ip_src, ip_dst from snif_01;");
+        assert!(parser.token_count() == 8);
+        parser.run();
+    }
+
+    #[test]
     fn load_file() {
         let mut parser = Parser::new();
         parser.parse_file("../examples/basic.pql");
-        assert!(parser.token_count() == 11);
+        assert!(parser.token_count() == 10);
     }
 
     #[test]
     fn peek_one() {
         let mut parser = Parser::new();
         parser.parse_file("../examples/basic.pql");
-        assert!(parser.token_count() == 11);
+        assert!(parser.token_count() == 10);
         match parser.peek(Keyword::Select) {
             Some(token) => {
                 // println!("Token peek: {}", token.value);
@@ -148,7 +202,7 @@ mod tests {
     fn peek_two() {
         let mut parser = Parser::new();
         parser.parse_file("../examples/basic.pql");
-        assert!(parser.token_count() == 11);
+        assert!(parser.token_count() == 10);
         match parser.peek(Keyword::Select) {
             Some(token) => {
                 // println!("Token peek: {}", token.value);
@@ -176,7 +230,7 @@ mod tests {
     fn expect_one_token() {
         let mut parser = Parser::new();
         parser.parse_file("../examples/basic.pql");
-        assert!(parser.token_count() == 11);
+        assert!(parser.token_count() == 10);
         match parser.expect(Keyword::From) {
             Some(token) => {
                 // println!("Token peek: {}", token.value);
@@ -193,7 +247,7 @@ mod tests {
     fn expect_two_token() {
         let mut parser = Parser::new();
         parser.parse_file("../examples/basic.pql");
-        assert!(parser.token_count() == 11);
+        assert!(parser.token_count() == 10);
         match parser.accept(Keyword::Select) {
             Some(token) => {
                 // println!("Token peek: {}", token.value);
@@ -221,16 +275,8 @@ mod tests {
     fn execute() {
         let mut parser = Parser::new();
         parser.parse_file("../examples/execute_two_fields.pql");
-        assert!(parser.token_count() == 13);
+        assert!(parser.token_count() == 12);
         parser.execute();
         assert!(true)
-    }
-
-    #[test]
-    fn test_str_cmp() {
-        let str_a: &str = "This is string a";
-        let str_b: &str = "This is string a";
-
-        assert!(str_a == str_b)
     }
 }

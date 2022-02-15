@@ -1,20 +1,32 @@
 use std::env;
 
 mod config;
+mod db;
 mod db_config;
 mod packetref;
+mod pql_api;
 mod sniffer;
-mod db;
+
 use config::Config;
-use db::Database;
+use std::thread;
+use ctrlc;
+use std::process::exit;
 // use pql;
 
 #[warn(dead_code)]
 fn main() {
+    ctrlc::set_handler(move || {
+        println!("Received Ctrl+C, pcapdb is terminating");
+        exit(0);
+    })
+    .expect("Error setting Ctrl-C handler");
+    
     let args: Vec<String> = env::args().collect();
     about();
+
+    pql_api::start();
+
     println!("{:?}", args);
-    // pql::run();
 
     let config: Config = config::read(&args[1]);
     println!("Db path: {}", config.db_path);

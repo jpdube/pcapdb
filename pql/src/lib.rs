@@ -1,7 +1,6 @@
 mod tokenizer;
 mod parser;
 mod models;
-mod scanner;
 use tokenizer::{tokenize, Token};
 use models::Select;
 

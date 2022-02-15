@@ -6,6 +6,7 @@ mod db_config;
 mod packetref;
 mod pql_api;
 mod sniffer;
+mod print_hex;
 
 use config::Config;
 use std::thread;

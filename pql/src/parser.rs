@@ -1,6 +1,4 @@
-use std::error::Error;
 use std::fs;
-use std::io::Read;
 
 use crate::tokenizer::{tokenize, Keyword, Token};
 

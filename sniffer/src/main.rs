@@ -12,6 +12,8 @@ use config::Config;
 use std::thread;
 use ctrlc;
 use std::process::exit;
+
+use crate::print_hex::print_hex;
 // use pql;
 
 #[warn(dead_code)]
@@ -25,6 +27,7 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     about();
 
+    print_hex(vec![0,1,2,3,4]);
     pql_api::start();
 
     println!("{:?}", args);

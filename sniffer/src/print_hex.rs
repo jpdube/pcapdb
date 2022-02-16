@@ -3,7 +3,7 @@ pub fn format_hex(bytes: Vec<u8>) -> String {
 
     let mut count: usize = 0;
     let mut byte_count: usize = 0;
-    let mut result:String = "".to_string();
+    let mut result:String = String::new();
     let mut spacing: usize = 0;
 
     for i in bytes.to_owned() {
@@ -42,7 +42,7 @@ pub fn print_hex(bytes: Vec<u8>) {
 }
 
 fn get_char(bytes: Vec<u8>) -> String {
-    let mut result: String = "".to_string();
+    let mut result: String = String::new();
 
     for i in bytes {
         if i >= (0x21 as u8) && i <= (0x7e as u8) {
